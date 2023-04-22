@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Pixel Run" board="Alchitry Au" language="Lucid" version="3">
+  <files>
+    <src>multi_seven_seg.luc</src>
+    <src>multi_dec_ctr.luc</src>
+    <component>pipeline.luc</component>
+    <src>led_driver.luc</src>
+    <component>counter.luc</component>
+    <src>random_gen_pattern.luc</src>
+    <src>compare.luc</src>
+    <src>game_regfiles.luc</src>
+    <src>generate_grid_rom.luc</src>
+    <src>matrix_writer.luc</src>
+    <src>code_to_led.luc</src>
+    <src>grid5_to_matrix.luc</src>
+    <src>adder.luc</src>
+    <component>reset_conditioner.luc</component>
+    <src>boolean.luc</src>
+    <src>grid3_to_matrix.luc</src>
+    <component>button_conditioner.luc</component>
+    <src>alu.luc</src>
+    <component>simple_dual_ram.v</component>
+    <src>seven_seg.luc</src>
+    <src>decimal_counter.luc</src>
+    <component>decoder.luc</component>
+    <src>ws2812b_writer.luc</src>
+    <src>grid_to_led.luc</src>
+    <component>pn_gen.luc</component>
+    <src top="true">au_top.luc</src>
+    <component>bin_to_dec.luc</component>
+    <src>game_beta.luc</src>
+    <component>simple_ram.v</component>
+    <src>shifter.luc</src>
+    <component>edge_detector.luc</component>
+    <src>game_CU.luc</src>
+    <constraint lib="true">au.xdc</constraint>
+    <constraint>custom.acf</constraint>
+  </files>
+</project>

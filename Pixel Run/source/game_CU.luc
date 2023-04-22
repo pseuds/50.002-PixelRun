@@ -1,0 +1,1016 @@
+ module game_CU (
+    input clk,  // clock
+    input rst,  // reset
+    
+    input increase_timer, 
+    input increase_gmcount,
+    input regfile_datain[16], //direct reading of regfile data from read_address_b
+    
+    input left_button,
+    input right_button,
+    input start_button,
+    input reset_button,
+    
+    output alufn[6],
+    output asel[1],
+    output bsel[4],
+    output alu_out_sel[1],
+    output regfile_write_address[5],
+    output regfile_read_address_a[5],
+    output regfile_read_address_b[5],
+    output we_regfile,
+    
+    output rom_address,      // ROM address to read from later
+    output get_new_pattern[1], // boolean whether to get new pattern
+    output get_rom_address[1], // boolean whether to get rom address from memoryunit later
+    
+    output increased_time,
+    output reset_timer,
+    output increased_coin,
+    output reset_coin,
+    
+    output gameover_bool,
+    
+    output debug[7],
+    output debug_pattern_pass[7]
+  ) {
+  
+  .clk(clk){
+    
+    fsm game_fsm={
+      // START PHASE -- 16 states
+      WAIT_START,       
+      IDLE,
+      INIT_TIME_DISPLAY,
+      INIT_COIN_DISPLAY,
+      INIT_GMCOUNT,
+      INIT_GMT,
+      INITIALISE_GRID,
+      INIT_ROW0,
+      INIT_ROW1, 
+      INIT_ROW2,
+      INIT_ROW3,
+      INIT_ROW4,
+      INIT_ROW5,
+      INIT_ROW6,
+      INIT_ROW7,
+      INIT_ROW8,
+      INIT_ROW9,
+      
+      // GAME PHASE -- 6+12+6+21+3 = 48 states
+      CHECK_PLAYER_INCOL0,    // left right button checkers and branches
+      BRANCH_COL0_CHECK,
+      MOVE_LEFT,
+      CHECK_PLAYER_INCOL4,
+      BRANCH_COL4_CHECK,
+      MOVE_RIGHT,
+      
+      CHECK_COINCOLLECT,    // check if player touches coin
+      BRANCHCHECK_COINCOLLECT,
+      COINCOLLECTCHECK_FIRSTSHIFT0,
+      COINCOLLECTCHECK_FIRSTSHIFT1,
+      COINCOLLECTCHECK_SHIFT0,
+      COINCOLLECTCHECK_SHIFT1,
+      CHECK_PLAYER_IN_COL0_TEMP,
+      BRANCHCHECK_PLAYER_IN_COL0_TEMP,
+      GET_COINCOLLECT_BOOL,
+      BRANCHCHECK_COINCOLLECT_BOOL,
+      GET_COINCOLLECT_BOOL_TEMP,
+      INCREASE_COINCOUNT,   
+
+      INCREASE_GAMETIMER,    // check if it's time for difficulty to increase
+      CHECK_GAMETIMER,
+      BRANCHCHECK_GAMETIMER,     
+      INCREASE_GMT_EASY,
+      INCREASE_GMT_MED,
+      INCREASE_GMT_HARD,
+      
+      INCREASE_GMCOUNT,      // check for grid movement
+      CHECK_GMCOUNT,        
+      BRANCHCHECK_GMCOUNT,       
+      RESET_GMCOUNT,        
+      GRIDSHIFT,            // update grid when gmcount reaches threshold
+      CHECK_ROW_COUNTER,     // generate random pattern and renew if needed
+      BRANCHCHECK_ROW_COUNTER,
+      GET_NEW_PATTERN,
+      INCREASE_ROW_COUNTER,
+      CALCULATE_ROM_INDEX1,
+      CALCULATE_ROM_INDEX2,
+      CHECK_ROW_COUNTER_RESET,
+      RESET_ROW_COUNTER,
+      SHIFTDOWN_ROW1,
+      SHIFTDOWN_ROW2,
+      SHIFTDOWN_ROW3,
+      SHIFTDOWN_ROW4,
+      SHIFTDOWN_ROW5,
+      SHIFTDOWN_ROW6,
+      SHIFTDOWN_ROW7,
+      SHIFTDOWN_ROW8,
+      SHIFTDOWN_ROW9,
+      
+      CHECK_GAMEOVER,       // check if player collides with obstacle
+      CHECK_GAMEOVER_BOOL,
+      BRANCHCHECK_GAMEOVER,
+      
+      // END PHASE -- 12 states
+      DISPLAY_TIME,         // end game displays
+      DISPLAY_COINCOUNT,
+      CALCULATE_SCORE,      // score calculation and checking
+      CALCULATE_HIGHSCORE,
+      CHECK_SCORES,
+      BRANCHCHECK_SCORES,
+      UPDATE_TIMER_HIGHSCORE,
+      UPDATE_COIN_HIGHSCORE,
+      DISPLAY_TIMER_HIGHSCORE,
+      DISPLAY_COIN_HIGHSCORE,
+      
+      WAIT_RESET,
+      RESET_ROW0,
+      RESET_ROW1,
+      RESET_ROW2,
+      RESET_ROW3,
+      RESET_ROW4,
+      RESET_ROW5,
+      RESET_ROW6,
+      RESET_ROW7,
+      RESET_ROW8,
+      RESET_ROW9
+      
+      };
+    
+  }
+  
+  always {
+  
+    // standard setting unless otherwise overwritten by each case 
+    alufn = b000000;
+    asel = b0; 
+    bsel = b0000;
+    we_regfile = b0;
+    regfile_write_address = b11110;     // temp storage
+    regfile_read_address_a = b11110;
+    regfile_read_address_b = b11110;
+    alu_out_sel = b0;
+    
+    rom_address = b0;
+    get_new_pattern = b0;
+    get_rom_address = b0;
+    
+    increased_time = 0;
+    reset_timer = 0;
+    increased_coin = 0;
+    reset_coin = 0;
+    
+    gameover_bool = 0;
+    
+    debug = b0000000;
+    debug_pattern_pass = b0;
+    
+    if (rst){
+        game_fsm.d = game_fsm.WAIT_START;
+        reset_timer = 1;
+        reset_coin = 1;
+    }
+    else {
+      
+    case(game_fsm.q){
+    
+      game_fsm.WAIT_START: 
+        we_regfile = 0; 
+        debug = b0000001;
+        gameover_bool = 1; 
+        if (start_button){                   
+          game_fsm.d = game_fsm.INIT_TIME_DISPLAY;
+        }
+        else{
+          game_fsm.d =  game_fsm.WAIT_START;
+        }
+          
+      game_fsm.INIT_TIME_DISPLAY:
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from always zero 0x1F
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b00000; // write into time display 0x00
+        debug = b0000010;
+        reset_timer = 1;
+        game_fsm.d = game_fsm.INIT_COIN_DISPLAY;
+          
+      game_fsm.INIT_COIN_DISPLAY:
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from always zero 0x1F
+        asel = 0;
+        we_regfile = 1;
+        reset_coin = 1;
+        regfile_write_address = b00001; // write into coin display 0x01
+        debug = b0000011;
+        game_fsm.d = game_fsm.INIT_GMCOUNT;
+          
+      game_fsm.INIT_GMCOUNT:
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from always zero 0x1F
+        asel = 0;
+        we_regfile = 1;
+        reset_coin = 1;
+        regfile_write_address = b00010; // write into gm count 0x02
+        debug = b0000011;
+        game_fsm.d = game_fsm.INIT_GMT;
+          
+      game_fsm.INIT_GMT:
+        alufn = b011011;     // pass B
+        bsel = b001;         // GMT init 
+        we_regfile = 1;
+        regfile_write_address = b01101; // write into current GMT 0x0D 
+        debug = b0000100;     
+        game_fsm.d = game_fsm.INITIALISE_GRID;
+        
+      game_fsm.INITIALISE_GRID:  
+        debug = b0000101;                             
+        we_regfile = 0;
+        debug = b0011;
+        game_fsm.d = game_fsm.INIT_ROW0;
+      
+      game_fsm.INIT_ROW0:
+        debug = b0000110;
+        alufn = b011010;     // pass A
+        rom_address = 0;    // pass player default position
+        asel = 1;           // pass ROM 
+        we_regfile = 1;
+        regfile_write_address = b00011;
+        game_fsm.d = game_fsm.INIT_ROW1;
+          
+      game_fsm.INIT_ROW1:
+      debug = b0000111;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F        
+        asel = 0;           
+        we_regfile = 1;
+        regfile_write_address = b00100;
+        game_fsm.d = game_fsm.INIT_ROW2;
+      
+      game_fsm.INIT_ROW2: 
+      debug = b0001000; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0; 
+        we_regfile = 1;
+        regfile_write_address = b00101;
+        game_fsm.d = game_fsm.INIT_ROW3;
+          
+      game_fsm.INIT_ROW3:  
+      debug = b0001001;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0; 
+        we_regfile = 1;
+        regfile_write_address = b00110;
+        game_fsm.d = game_fsm.INIT_ROW4;
+          
+      game_fsm.INIT_ROW4: 
+      debug = b0001010; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0; 
+        we_regfile = 1;
+        regfile_write_address = b00111;
+        game_fsm.d = game_fsm.INIT_ROW5;
+          
+      game_fsm.INIT_ROW5:
+      debug = b0001011;  
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0;  
+        we_regfile = 1;
+        regfile_write_address = b01000;
+        game_fsm.d = game_fsm.INIT_ROW6;
+      
+      game_fsm.INIT_ROW6:  
+      debug = b0001100;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0;  
+        we_regfile = 1;
+        regfile_write_address = b01001;
+        game_fsm.d = game_fsm.INIT_ROW7;
+          
+      game_fsm.INIT_ROW7:  
+      debug = b0001101;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0; 
+        we_regfile = 1;
+        regfile_write_address = b01010;
+        game_fsm.d = game_fsm.INIT_ROW8;
+          
+      game_fsm.INIT_ROW8: 
+      debug = b0001110; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0; 
+        we_regfile = 1;
+        regfile_write_address = b01011;
+        game_fsm.d = game_fsm.INIT_ROW9;
+          
+      game_fsm.INIT_ROW9: 
+      debug = b0001111; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0; 
+        we_regfile = 1;
+        regfile_write_address = b01100;
+        game_fsm.d = game_fsm.CHECK_GMCOUNT;
+          
+      // GRID MOVEMENT CHECKING  
+      game_fsm.INCREASE_GMCOUNT:
+      debug = b0010000;
+        alufn = b000000; // ADD
+        regfile_read_address_a = b00010; // read from 0x02 gm counter
+        asel = 0;
+        bsel = b1001; // value 1
+        we_regfile = 1;
+        regfile_write_address = b00010; // write into 0x02 gm counter
+        game_fsm.d = game_fsm.CHECK_GMCOUNT;   
+            
+      game_fsm.CHECK_GMCOUNT:
+      debug = b0010001;
+        alufn = b110111; // CMPLT or equal to 
+        regfile_read_address_b = b00010; // read from GM counter
+        regfile_read_address_a = b01101; // read from current GM threshold
+        asel = 0;
+        bsel = b000; // read from reg
+        we_regfile = 1;
+        regfile_write_address = b10111; // write into temp comparison
+        game_fsm.d = game_fsm.BRANCHCHECK_GMCOUNT;
+          
+      game_fsm.BRANCHCHECK_GMCOUNT:
+      debug = b0010010;
+        regfile_read_address_b = b10111; // read from temp comparison
+        if (regfile_datain[0]) {
+          game_fsm.d = game_fsm.RESET_GMCOUNT;
+        } else {
+          game_fsm.d = game_fsm.IDLE; 
+        }
+      
+      game_fsm.RESET_GMCOUNT:  
+      debug = b0010011;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0;     
+        we_regfile = 1;
+        regfile_write_address = b00010; // write into GM counter 
+        game_fsm.d = game_fsm.CHECK_GAMEOVER;
+      
+      // LEFT BUTTON PRESSED
+      game_fsm.CHECK_PLAYER_INCOL0:
+      debug = b0010100;
+        alufn = b110011; // CMPEQ
+        regfile_read_address_a = b00011; 
+        asel = 0;
+        bsel = b101; // 0x100, player in col0
+        we_regfile = 1;
+        regfile_write_address = b10111; // write into temp comparison
+        game_fsm.d = game_fsm.BRANCH_COL0_CHECK;
+      
+      game_fsm.BRANCH_COL0_CHECK:
+      debug = b0010101;
+        regfile_read_address_b = b10111; // read from temp comparison
+        if (regfile_datain[0]) {
+          game_fsm.d = game_fsm.IDLE;
+        } else {
+          game_fsm.d = game_fsm.MOVE_LEFT; 
+        }
+      
+      game_fsm.MOVE_LEFT:
+      debug = b0010110;
+        alufn = b100000; //SHL
+        regfile_read_address_a = b00011; // read from row0
+        asel = 0;
+        bsel = b110; // value 2
+        we_regfile = 1;
+        regfile_write_address = b00011; // write into row0
+        game_fsm.d = game_fsm.IDLE;
+      
+      // RIGHT BUTTON PRESSED
+      game_fsm.CHECK_PLAYER_INCOL4:
+      debug = b0010111;
+        alufn = b110011; // CMPEQ
+        regfile_read_address_a = b00011; // read from row0
+        asel = 0;
+        bsel = b111; // 0x2, player in col4
+        we_regfile = 1;
+        regfile_write_address = b10111; // write into temp comparison
+        game_fsm.d = game_fsm.BRANCH_COL4_CHECK;
+      
+      game_fsm.BRANCH_COL4_CHECK:
+      debug = b0011000;
+        regfile_read_address_b = b10111; // read from temp comparison
+        if (regfile_datain[0]) { 
+          game_fsm.d = game_fsm.IDLE;
+        } else {
+          game_fsm.d = game_fsm.MOVE_RIGHT; 
+        }
+      
+      game_fsm.MOVE_RIGHT:
+      debug = b0011001;
+        alufn = b100001; //SHR
+        regfile_read_address_a = b00011; // read from row0
+        asel = 0;
+        bsel = b110; // value 2
+        we_regfile = 1;
+        regfile_write_address = b00011; // write into row0
+        game_fsm.d = game_fsm.IDLE;
+      
+      // OBSTACLE COLLISION CHECKING
+      game_fsm.CHECK_GAMEOVER:
+        debug = b0011010;
+        alufn = b011000;
+        regfile_read_address_a = b00011; // read from row0
+        regfile_read_address_b = b00100; // read from row1
+        asel = 0;
+        bsel = b000; // read from reg
+        we_regfile = 1;
+        regfile_write_address = b11000; // write into temp storage 0x18
+        game_fsm.d = game_fsm.CHECK_GAMEOVER_BOOL;
+          
+      game_fsm.CHECK_GAMEOVER_BOOL:
+      debug = b0011011;
+        // check if row0 == AND result
+        alufn = b110011; // CMPEQ  
+        regfile_read_address_a = b00011; // read from row0
+        regfile_read_address_b = b11000; // read from temp storage 0x18
+        asel = 0;
+        bsel = b000; // read from reg
+        we_regfile = 1;
+        regfile_write_address = b10111; // write into temp comparison 0x17
+        game_fsm.d = game_fsm.BRANCHCHECK_GAMEOVER;
+          
+      game_fsm.BRANCHCHECK_GAMEOVER:
+      debug = b0011100;
+        regfile_read_address_b = b10111; // read from temp comparison
+        if (regfile_datain[0]) { 
+          game_fsm.d = game_fsm.DISPLAY_TIME;
+        } else {
+          game_fsm.d = game_fsm.CHECK_COINCOLLECT; 
+        }
+          
+      // COIN COLLECT CHECKING
+      game_fsm.CHECK_COINCOLLECT:
+      debug = b0011101;
+        // check if player in column 0
+        alufn = b110011; // CMPEQ  
+        regfile_read_address_a = b00011; // read from row0
+        asel = 0;
+        bsel = b101; // 0x100, player in col0
+        we_regfile = 1;
+        regfile_write_address = b10111; // write into temp comparison
+        game_fsm.d = game_fsm.BRANCHCHECK_COINCOLLECT;
+      
+      game_fsm.BRANCHCHECK_COINCOLLECT:
+      debug = b0011110;
+        // if player not in column 0, need shifting phase
+        regfile_read_address_b = b10111; // read from temp comparison
+        if (regfile_datain[0]) { 
+          game_fsm.d = game_fsm.GET_COINCOLLECT_BOOL;
+        } else {
+          game_fsm.d = game_fsm.COINCOLLECTCHECK_FIRSTSHIFT0; 
+        }
+      
+      game_fsm.COINCOLLECTCHECK_FIRSTSHIFT0:
+        debug = b0011111;
+        alufn = b100000; //SHL
+        regfile_read_address_a = b00011; // read from row0
+        asel = 0;
+        bsel = b110; // value 2
+        we_regfile = 1;
+        regfile_write_address = b11000; // write into temp storage 0x18
+        game_fsm.d = game_fsm.COINCOLLECTCHECK_FIRSTSHIFT1;
+      
+      game_fsm.COINCOLLECTCHECK_FIRSTSHIFT1:
+      debug = b0100000;
+        alufn = b100000; //SHL
+        regfile_read_address_a = b00100; // read from row1
+        asel = 0;
+        bsel = b110; // value 2
+        we_regfile = 1;
+        regfile_write_address = b11001; // write into temp storage 0x19
+        game_fsm.d = game_fsm.CHECK_PLAYER_IN_COL0_TEMP;
+      
+      game_fsm.CHECK_PLAYER_IN_COL0_TEMP:
+      debug = b0100001;
+        // check if player in column 0
+        alufn = b110011; // CMPEQ  
+        regfile_read_address_a = b11000; // read from temp storage 0x18 -- shifted row0
+        asel = 0;
+        bsel = b101; // 0x100, player in col0
+        we_regfile = 1;
+        regfile_write_address = b10111; // write into temp comparison
+        game_fsm.d = game_fsm.BRANCHCHECK_PLAYER_IN_COL0_TEMP;
+      
+      game_fsm.BRANCHCHECK_PLAYER_IN_COL0_TEMP:
+      debug = b0100010;
+        // if player not in column 0, need shifting phase
+        regfile_read_address_b = b10111; // read from temp comparison
+        if (regfile_datain[0]) { 
+          game_fsm.d = game_fsm.GET_COINCOLLECT_BOOL_TEMP;
+        } else {
+          game_fsm.d = game_fsm.COINCOLLECTCHECK_SHIFT0; 
+        }
+      
+      game_fsm.COINCOLLECTCHECK_SHIFT0:
+      debug = b0100011;
+        alufn = b100000; //SHL
+        regfile_read_address_a = b11000; // read from temp storage 0x18
+        asel = 0;
+        bsel = b110; // value 2
+        we_regfile = 1;
+        regfile_write_address = b11000; // write into temp storage 0x18
+        game_fsm.d = game_fsm.COINCOLLECTCHECK_SHIFT1;
+          
+      game_fsm.COINCOLLECTCHECK_SHIFT1:
+      debug = b0100100;
+        alufn = b100000; //SHL
+        regfile_read_address_a = b11001; // read from temp storage 0x19
+        asel = 0;
+        bsel = b110; // value 2
+        we_regfile = 1;
+        regfile_write_address = b11001; // write into temp storage 0x19
+        game_fsm.d = game_fsm.CHECK_PLAYER_IN_COL0_TEMP;
+      
+      game_fsm.GET_COINCOLLECT_BOOL:
+      debug = b0100101;
+        alufn = b110101; // CMPLT  -- row0 < row1
+        regfile_read_address_a = b00011; // read from row0
+        regfile_read_address_b = b00100; // read from row1
+        asel = 0;
+        bsel = b000; // read from reg
+        we_regfile = 1;
+        regfile_write_address = b10111; // write into temp comparison
+        game_fsm.d = game_fsm.BRANCHCHECK_COINCOLLECT_BOOL;       
+        
+      game_fsm.GET_COINCOLLECT_BOOL_TEMP:
+      debug = b0100110;
+        alufn = b110101; // CMPLT  -- 0x18 < 0x19
+        regfile_read_address_a = b11000; // read from 0x18
+        regfile_read_address_b = b11001; // read from 0x19
+        asel = 0;
+        bsel = b000; // read from reg
+        we_regfile = 1;
+        regfile_write_address = b10111; // write into temp comparison
+        game_fsm.d = game_fsm.BRANCHCHECK_COINCOLLECT_BOOL;  
+      
+      game_fsm.BRANCHCHECK_COINCOLLECT_BOOL:
+      debug = b0100111;
+        regfile_read_address_b = b10111; // read from temp comparison
+        if (regfile_datain[0]) { 
+          game_fsm.d = game_fsm.INCREASE_COINCOUNT;
+        } else {
+          game_fsm.d = game_fsm.GRIDSHIFT; 
+        }
+      
+      game_fsm.INCREASE_COINCOUNT: 
+      debug = b0101000;
+        alufn = b000000; // ADD
+        regfile_read_address_a = b00001; // read from 0x01 coin counter
+        asel = 0;
+        bsel = b1001; // value 1
+        we_regfile = 1;
+        increased_coin = 1;
+        regfile_write_address = b00001; // write into 0x01 coin counter
+        game_fsm.d = game_fsm.GRIDSHIFT;
+          
+      // CHECK DIFFICULTY INCREASE
+      game_fsm.INCREASE_GAMETIMER:
+        debug = b0101001;
+        alufn = b000000; // ADD
+        regfile_read_address_a = b00000; // read from 0x00 game timer
+        asel = 0;
+        bsel = b1001; // value 1
+        we_regfile = 1;
+        increased_time = 1;
+        regfile_write_address = b00000; // write into 0x00 game timer
+        game_fsm.d = game_fsm.CHECK_GAMETIMER;
+        
+      game_fsm.CHECK_GAMETIMER:  
+       debug = b0101010;  
+         regfile_read_address_b = b00000; // read from 0x00 game timer  
+         if (regfile_datain == 120) { // if timer == 120  
+           game_fsm.d = game_fsm.INCREASE_GMT_HARD;  
+         } else if (regfile_datain == 60) { // elif timer == 60  
+           game_fsm.d = game_fsm.INCREASE_GMT_MED;   
+         } else if (regfile_datain == 30) { // elif timer == 30  
+           game_fsm.d = game_fsm.INCREASE_GMT_EASY;  
+         } else {  
+           game_fsm.d = game_fsm.IDLE;  
+         }
+          
+      game_fsm.INCREASE_GMT_EASY:
+      debug = b0101010;
+        alufn = b011011;     // pass B
+        bsel = b010;         // GMT easy 
+        we_regfile = 1;
+        regfile_write_address = b01101; // write into current GMT 0x0D      
+        game_fsm.d = game_fsm.IDLE;
+          
+      game_fsm.INCREASE_GMT_MED:
+      debug = b0101011;
+        alufn = b011011;     // pass B
+        bsel = b011;         // GMT med 
+        we_regfile = 1;
+        regfile_write_address = b01101; // write into current GMT 0x0D   
+        game_fsm.d = game_fsm.IDLE;
+          
+      game_fsm.INCREASE_GMT_HARD:
+      debug = b0101100;
+        alufn = b011011;     // pass B
+        bsel = b100;         // GMT hard
+        we_regfile = 1;
+        regfile_write_address = b01101; // write into current GMT 0x0D      
+        game_fsm.d = game_fsm.IDLE;
+          
+      // GRID SHIFTING 
+      game_fsm.GRIDSHIFT:
+      debug = b0101101;                               
+        we_regfile = 0;
+        game_fsm.d = game_fsm.CHECK_ROW_COUNTER;
+          
+      game_fsm.CHECK_ROW_COUNTER:
+      debug = b0101110;
+        alufn = b110011; // CMPEQ
+        regfile_read_address_a = b01111; // read from row counter 0x0F
+        regfile_read_address_b = b11111; // read from always 0 0x1F
+        asel = 0;
+        bsel = b000; 
+        we_regfile = 1;
+        regfile_write_address = b10111; // write into temp comparison
+        game_fsm.d = game_fsm.BRANCHCHECK_ROW_COUNTER;
+          
+      game_fsm.BRANCHCHECK_ROW_COUNTER:
+      debug = b0101111;
+        regfile_read_address_b = b10111; // read temp comparison
+        if (regfile_datain[0]) { 
+          game_fsm.d = game_fsm.GET_NEW_PATTERN;
+        } else {
+          game_fsm.d = game_fsm.INCREASE_ROW_COUNTER; 
+        }
+
+      game_fsm.GET_NEW_PATTERN:
+        debug = b0110000;
+        get_new_pattern = b1;
+        we_regfile = 1;
+        alu_out_sel = 1;
+        regfile_write_address = b01110; // write into pattern number 0x0E 
+        game_fsm.d = game_fsm.INCREASE_ROW_COUNTER;
+      
+      game_fsm.INCREASE_ROW_COUNTER:
+      debug = b0110001;
+        debug_pattern_pass = b0110001;
+        alufn = b000000; // ADD
+        regfile_read_address_a = b01111; // read from row counter 0x0F
+        asel = 0;
+        bsel = b1001; // value 1
+        we_regfile = 1;
+        regfile_write_address = b01111; // write into row counter 0x0F
+        game_fsm.d = game_fsm.CALCULATE_ROM_INDEX1;
+          
+      game_fsm.CALCULATE_ROM_INDEX1:
+        debug = b0110010;
+        alufn = b000010; // multiply ( a * 15 ) 
+        regfile_read_address_a = b01110; // read from pattern number 0x0E
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b10000; // write into rom index 0x10
+        game_fsm.d = game_fsm.CALCULATE_ROM_INDEX2;
+          
+      game_fsm.CALCULATE_ROM_INDEX2:
+        debug = b0110001;
+        alufn = b000000; // ADD
+        regfile_read_address_a = b10000; // read from rom index 0x10
+        regfile_read_address_b = b01111; // read from row counter 0x0F
+        asel = 0;
+        bsel = b000;
+        we_regfile = 1;
+        regfile_write_address = b10000; // write into rom index 0x10
+        game_fsm.d = game_fsm.CHECK_ROW_COUNTER_RESET;
+          
+      game_fsm.CHECK_ROW_COUNTER_RESET:
+      debug = b0110011;
+        regfile_read_address_b = b01111; // read from row counter 0x0F
+        if (regfile_datain[3:0] >= b1111) {  // reset if row counter is >15
+          game_fsm.d = game_fsm.RESET_ROW_COUNTER;
+        } else {
+          game_fsm.d = game_fsm.SHIFTDOWN_ROW1; 
+        }
+      
+      game_fsm.RESET_ROW_COUNTER: 
+      debug = b0110100;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0;     
+        we_regfile = 1;
+        regfile_write_address = b01111; // write into row counter 0x0F
+        game_fsm.d = game_fsm.SHIFTDOWN_ROW1;
+
+      game_fsm.SHIFTDOWN_ROW1:  
+      debug = b0110101;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b00101; // read from row2
+        asel = 0;     
+        we_regfile = 1;
+        regfile_write_address = b00100; // write into row1 
+        game_fsm.d = game_fsm.SHIFTDOWN_ROW2;
+          
+      game_fsm.SHIFTDOWN_ROW2:  
+      debug = b0110110;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b00110; // read from row3
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b00101; // write into row2
+        game_fsm.d = game_fsm.SHIFTDOWN_ROW3;
+        
+      game_fsm.SHIFTDOWN_ROW3: 
+      debug = b0110111; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b00111; // read from row4
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b00110; // write into row3
+        game_fsm.d = game_fsm.SHIFTDOWN_ROW4;
+       
+      game_fsm.SHIFTDOWN_ROW4: 
+      debug = b0111000; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b01000; // read from row5        
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b00111; // write into row4
+        game_fsm.d = game_fsm.SHIFTDOWN_ROW5;
+          
+      game_fsm.SHIFTDOWN_ROW5: 
+      debug = b0111001; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b01001; // read from row6
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b01000; // write into row5
+        game_fsm.d = game_fsm.SHIFTDOWN_ROW6;
+      
+      game_fsm.SHIFTDOWN_ROW6: 
+      debug = b0111010; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b01010; // read from row7
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b01001; // write into row6
+        game_fsm.d = game_fsm.SHIFTDOWN_ROW7;
+          
+      game_fsm.SHIFTDOWN_ROW7:  
+      debug = b0111011;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b01011; // read from row8
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b01010; // write into row7
+        game_fsm.d = game_fsm.SHIFTDOWN_ROW8;
+          
+      game_fsm.SHIFTDOWN_ROW8:
+      debug = b0111100;  
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b01100; // read from row9
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b01011; // write into row8
+        game_fsm.d = game_fsm.SHIFTDOWN_ROW9;
+          
+      game_fsm.SHIFTDOWN_ROW9:  
+      debug = b0111101;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b10000; // read from rom index 0x10
+        get_rom_address = b1;
+        asel = 1; // read from ROM
+        we_regfile = 1;
+        regfile_write_address = b01100; // write into row9
+        game_fsm.d = game_fsm.IDLE;
+          
+      // GAME OVER 
+      game_fsm.DISPLAY_TIME:
+      debug = b0111110;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b00000; // read from timer
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b10011; // write into temp time 0x13
+        game_fsm.d = game_fsm.DISPLAY_COINCOUNT;
+      
+      game_fsm.DISPLAY_COINCOUNT:
+      debug = b0111111;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b00001; // read from coin counter
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b10110; // write into temp coin 0x16
+        game_fsm.d = game_fsm.CALCULATE_SCORE;
+          
+      game_fsm.CALCULATE_SCORE:
+      debug = b1000000; 
+        alufn = b000000; // ADD
+        regfile_read_address_a = b10011; // read from temp time 0x13
+        regfile_read_address_b = b10110; // read from temp coin 0x16
+        asel = 0;
+        bsel = b000; 
+        we_regfile = 1;
+        regfile_write_address = b10100; // write into temp score 0x14
+        game_fsm.d = game_fsm.CALCULATE_HIGHSCORE;
+      
+      game_fsm.CALCULATE_HIGHSCORE: 
+      debug = b1000001; 
+        alufn = b000000; // ADD
+        regfile_read_address_a = b10010; // read from timer highscore 0x12
+        regfile_read_address_b = b10001; // read from coin highscore 0x11
+        asel = 0;
+        bsel = b000; 
+        we_regfile = 1;
+        regfile_write_address = b10101; // write into temp highscore 0x15
+        game_fsm.d = game_fsm.CHECK_SCORES;
+          
+      game_fsm.CHECK_SCORES:
+      debug = b1000010; 
+        alufn = b110101; // CMPLT  -- a < b
+        regfile_read_address_a = b10101; // read from temp highscore 0x15
+        regfile_read_address_b = b10100; // read from temp score 0x14
+        asel = 0;
+        bsel = b000; // read from reg
+        we_regfile = 1;
+        regfile_write_address = b10111; // write into temp comparison
+        game_fsm.d = game_fsm.BRANCHCHECK_SCORES; 
+          
+      game_fsm.BRANCHCHECK_SCORES:
+      debug = b1000011; 
+        regfile_read_address_b = b10111; // read from temp comparison
+        if (regfile_datain[0]) { 
+          game_fsm.d = game_fsm.UPDATE_TIMER_HIGHSCORE;
+        } else {
+          game_fsm.d = game_fsm.DISPLAY_TIMER_HIGHSCORE; 
+        }
+          
+      game_fsm.UPDATE_TIMER_HIGHSCORE:
+      debug = b1000100; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b10011; // read from temp time 0x13
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b10010; // write into timer highscore 0x12
+        game_fsm.d = game_fsm.UPDATE_COIN_HIGHSCORE;
+      
+      game_fsm.UPDATE_COIN_HIGHSCORE:
+      debug = b1000101; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b10110; // read from temp coin 0x16
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b10001; // write into coin highscore 0x11
+        game_fsm.d = game_fsm.DISPLAY_TIMER_HIGHSCORE;
+          
+      game_fsm.DISPLAY_TIMER_HIGHSCORE:
+      debug = b1000110; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b10010; // read from timer highscore 0x12
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b00000; // write into timer 0x00
+        game_fsm.d = game_fsm.DISPLAY_COIN_HIGHSCORE;
+          
+      game_fsm.DISPLAY_COIN_HIGHSCORE:
+      debug = b1000111; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b10001; // read from coin highscore 0x11
+        asel = 0;
+        we_regfile = 1;
+        regfile_write_address = b00001; // write into 0x01 coin counter
+        game_fsm.d = game_fsm.WAIT_RESET;
+
+      game_fsm.WAIT_RESET:
+        debug = b1001000;   
+        we_regfile = 0; 
+        if (reset_button){                   
+          game_fsm.d = game_fsm.RESET_ROW0;
+        }
+        else{
+          game_fsm.d =  game_fsm.WAIT_RESET;
+        } 
+          
+      game_fsm.RESET_ROW0:
+        debug = b0000111;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F        
+        asel = 0;           
+        we_regfile = 1;
+        regfile_write_address = b00011;
+        game_fsm.d = game_fsm.RESET_ROW1;
+          
+      game_fsm.RESET_ROW1:
+      debug = b0000111;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F        
+        asel = 0;           
+        we_regfile = 1;
+        regfile_write_address = b00100;
+        game_fsm.d = game_fsm.RESET_ROW2;
+      
+      game_fsm.RESET_ROW2: 
+      debug = b0001000; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0; 
+        we_regfile = 1;
+        regfile_write_address = b00101;
+        game_fsm.d = game_fsm.RESET_ROW3;
+          
+      game_fsm.RESET_ROW3:  
+      debug = b0001001;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0; 
+        we_regfile = 1;
+        regfile_write_address = b00110;
+        game_fsm.d = game_fsm.RESET_ROW4;
+          
+      game_fsm.RESET_ROW4: 
+      debug = b0001010; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0; 
+        we_regfile = 1;
+        regfile_write_address = b00111;
+        game_fsm.d = game_fsm.RESET_ROW5;
+          
+      game_fsm.RESET_ROW5:
+      debug = b0001011;  
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0;  
+        we_regfile = 1;
+        regfile_write_address = b01000;
+        game_fsm.d = game_fsm.RESET_ROW6;
+      
+      game_fsm.RESET_ROW6:  
+      debug = b0001100;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0;  
+        we_regfile = 1;
+        regfile_write_address = b01001;
+        game_fsm.d = game_fsm.RESET_ROW7;
+          
+      game_fsm.RESET_ROW7:  
+      debug = b0001101;
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0; 
+        we_regfile = 1;
+        regfile_write_address = b01010;
+        game_fsm.d = game_fsm.RESET_ROW8;
+          
+      game_fsm.RESET_ROW8: 
+      debug = b0001110; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0; 
+        we_regfile = 1;
+        regfile_write_address = b01011;
+        game_fsm.d = game_fsm.RESET_ROW9;
+          
+      game_fsm.RESET_ROW9: 
+      debug = b0001111; 
+        alufn = b011010;     // pass A
+        regfile_read_address_a = b11111; // read from 0x1F
+        asel = 0; 
+        we_regfile = 1;
+        regfile_write_address = b01100;
+        game_fsm.d = game_fsm.WAIT_START;
+          
+      game_fsm.IDLE:
+      debug = b1001001; 
+        if (increase_timer){
+          debug_pattern_pass = b1001010;
+          game_fsm.d = game_fsm.INCREASE_GAMETIMER;
+        }
+        else if (increase_gmcount){
+            debug_pattern_pass = b1001001;
+            game_fsm.d = game_fsm.INCREASE_GMCOUNT;
+        }
+        else if (left_button && ~right_button){
+            game_fsm.d = game_fsm.CHECK_PLAYER_INCOL0;
+        }
+        else if (right_button && ~left_button){
+            game_fsm.d = game_fsm.CHECK_PLAYER_INCOL4;
+        } 
+        else{
+            game_fsm.d = game_fsm.IDLE;
+        }
+
+
+      }
+    }       
+  }
+}

@@ -1,0 +1,43 @@
+pin clk CLOCK;
+clock clk 100MHz;
+
+pin rst_n RESET;
+
+// flip the Tx/Rx lines
+pin usb_rx USB_TX;
+pin usb_tx USB_RX;
+
+//timer 7seg - 8 for timer and 3 for timer_sel
+pin timer[0] A27;
+pin timer[1] A28;
+pin timer[2] A24;
+pin timer[3] A23;
+pin timer[4] A30;
+pin timer[5] A31;
+pin timer[6] A21;
+pin timer[7] A20;
+pin timer_sel[0] A36;
+pin timer_sel[1] A37;
+pin timer_sel[2] A15;
+
+//coin 7 seg - 9
+pin coin[0] B27;
+pin coin[1] B28;
+pin coin[2] B24;
+pin coin[3] B23;
+pin coin[4] B30;
+pin coin[5] B31;
+pin coin[6] B21;
+pin coin[7] B20;
+pin coin_sel[0] B36;
+pin coin_sel[1] B37;
+
+//buttons - 4
+pin button[0] C28;
+pin button[1] C27;
+pin button[2] C23;
+pin button[3] C24;
+
+//grid - 1
+pin grid[0] B48;
+

@@ -1,0 +1,29 @@
+module led_driver (
+    input clk,  // clock
+    input rst,  // reset
+    
+    input grid[10][16],  // this is the 10*16 bit input that is the grid of the game map.
+    
+    output out[1]        //this is the 1 bit output from to the grid display in the au_top
+  ) {
+  
+  //initiate module we need to use!!
+  
+  .clk(clk){
+    //initiate the grid_to_led to convert grid from 10*16 bits to 80 *24 bits
+    grid_to_led led_bits_converter;
+    .rst(rst){
+      //initiate ws2812b_writer
+      ws2812b_writer led_strip(#PIXEL_COUNT(80));
+      //counter pixel (#TOP(80));
+    }
+  }
+
+  always {
+    led_bits_converter.grid = grid;
+    led_strip.update = 1;
+    led_strip.color = led_bits_converter.grid_ledversion[led_strip.pixel];
+    
+    out = led_strip.led;
+  }
+}

@@ -1,0 +1,232 @@
+//the regfile for all game information
+// use memory unit in here
+module game_regfiles (
+    input clk,  // clock
+    input rst,  // reset
+    input write_address[5], // write address
+    input we, // write enable
+    input data[16], // data in
+
+    input read_address_a[5], //address port a 
+    input read_address_b[5], //address port b
+    output out_a[16], //read port a
+    output out_b[16], //read port b
+    
+    output grid_data[10][16], // outputs grid data
+    output game_timer[16],
+    output coin_counter[16],
+    
+    output highest_time[16],
+    output highest_coin[16],
+    
+    output debug_row0[16],
+    output debug_row1[16],
+    output debug_row2[16],
+    output debug_row3[16],
+    output debug_row4[16],
+    output debug_row5[16],
+    output debug_row6[16],
+    output debug_row7[16],
+    output debug_row8[16],
+    output debug_row9[16],
+    
+    output debug_rom_index[16],
+    output debug_pattern[16],
+    output debug_gmcount[16],
+    output debug_row_counter[16],
+    
+    output debug_temptime[16],
+    output debug_tempcount[16],
+    output debug_temphighscore[16]
+    
+  ) {
+  
+  //memoryunit_dual game_MU (#DEPTH(16), .clk(clk));
+  
+  .clk(clk){
+    .rst(rst){
+      dff game_time[16];
+      dff coin_count[16];
+      dff grid_mov_ctr[16];
+      
+      dff row0[16];
+      dff row1[16];
+      dff row2[16];
+      dff row3[16];
+      dff row4[16];
+      dff row5[16];
+      dff row6[16];
+      dff row7[16];
+      dff row8[16];
+      dff row9[16];
+      
+      dff current_GMT[16];
+      dff pattern_num[16];
+      dff row_ctr[16];
+      dff grid_rom_index[16];
+      
+      dff coin_highscore[16];
+      dff timer_highscore[16];
+      
+      dff temp_time[16];
+      dff temp_score[16];
+      dff temp_highscore[16];
+      dff temp_coincount[16];
+      dff temp_comparison[16];
+      
+      dff temp_row0[16];
+      dff temp_row1[16];
+      
+      dff always_zero[16];
+    }
+  }
+
+  always {
+
+      if (we) {
+      
+        case(write_address){
+          b00000: game_time.d = data; // need init
+          b00001: coin_count.d = data; // need init
+          b00010: grid_mov_ctr.d = data; // need init
+          b00011: row0.d = data;
+          b00100: row1.d = data;
+          b00101: row2.d = data;
+          b00110: row3.d = data;
+          b00111: row4.d = data;
+          b01000: row5.d = data;
+          b01001: row6.d = data;
+          b01010: row7.d = data;
+          b01011: row8.d = data;
+          b01100: row9.d = data;
+          b01101: current_GMT.d = data; // need init
+          b01110: pattern_num.d = data;
+          b01111: row_ctr.d = data;
+          b10000: grid_rom_index.d = data;
+          b10001: coin_highscore.d = data;
+          b10010: timer_highscore.d = data;
+        
+          b10011: temp_time.d = data;
+          b10100: temp_score.d = data;
+        
+          b10101: temp_highscore.d = data;
+          b10110: temp_coincount.d = data;
+        
+          b10111: temp_comparison.d = data;
+          b11000: temp_row0.d = data;
+          b11001: temp_row1.d = data;
+          default: always_zero.d = b0000000000000000;
+        }
+        
+      }
+    
+      // REGFILE outputs
+      case(read_address_a) {
+          b00000:out_a = game_time.q;
+          b00001:out_a = coin_count.q;
+          b00010:out_a = grid_mov_ctr.q;
+
+          b00011:out_a = row0.q; 
+          b00100:out_a = row1.q;
+          b00101:out_a = row2.q;
+          b00110:out_a = row3.q;
+          b00111:out_a = row4.q;
+          b01000:out_a = row5.q;
+          b01001:out_a = row6.q;
+          b01010:out_a = row7.q;
+          b01011:out_a = row8.q;
+          b01100:out_a = row9.q;
+
+          b01101:out_a = current_GMT.q;
+          b01110:out_a = pattern_num.q;
+          b01111:out_a = row_ctr.q;
+          b10000:out_a = grid_rom_index.q;
+          b10001:out_a = coin_highscore.q;
+          b10010:out_a = timer_highscore.q;
+          b10011:out_a = temp_time.q;
+          b10100:out_a = temp_score.q;
+          b10101:out_a = temp_highscore.q;
+          b10110:out_a = temp_coincount.q;
+          b10111:out_a = temp_comparison.q;
+
+          b11000:out_a = temp_row0.q;
+          b11001:out_a = temp_row1.q;
+
+          b11111:out_a = always_zero.q;
+          default: out_a = always_zero.q;
+      }
+    
+      case(read_address_b){
+        b00000:out_b = game_time.q;
+        b00001:out_b = coin_count.q;
+        b00010:out_b = grid_mov_ctr.q;
+
+        b00011:out_b = row0.q;
+        b00100:out_b = row1.q;
+        b00101:out_b = row2.q;
+        b00110:out_b = row3.q;
+        b00111:out_b = row4.q;
+        b01000:out_b = row5.q;
+        b01001:out_b = row6.q;
+        b01010:out_b = row7.q;
+        b01011:out_b = row8.q;
+        b01100:out_b = row9.q;
+
+        b01101:out_b = current_GMT.q;
+        b01110:out_b = pattern_num.q;
+        b01111:out_b = row_ctr.q;
+        b10000:out_b = grid_rom_index.q;
+        b10001:out_b = coin_highscore.q;
+        b10010:out_b = timer_highscore.q;
+        b10011:out_b = temp_time.q;
+        b10100:out_b = temp_score.q;
+        b10101:out_b = temp_highscore.q;
+        b10110:out_b = temp_coincount.q;
+        b10111:out_b = temp_comparison.q;
+
+        b11000:out_b = temp_row0.q;
+        b11001:out_b = temp_row1.q;
+
+        b11111:out_b = always_zero.q;
+        default: out_b = 0;
+      }
+    
+      grid_data[0] = row0.q;
+      grid_data[1] = row1.q;
+      grid_data[2] = row2.q;
+      grid_data[3] = row3.q;
+      grid_data[4] = row4.q;
+      grid_data[5] = row5.q;
+      grid_data[6] = row6.q;
+      grid_data[7] = row7.q;
+      grid_data[8] = row8.q;
+      grid_data[9] = row9.q;
+    
+      game_timer = game_time.q;
+      coin_counter = coin_count.q;
+    
+      highest_time = timer_highscore.q;
+      highest_coin = coin_highscore.q;
+    
+      debug_row0 = row0.q;
+      debug_row1 = row1.q;
+      debug_row2 = row2.q;
+      debug_row3 = row3.q;
+      debug_row4 = row4.q;
+      debug_row5 = row5.q;
+      debug_row6 = row6.q;
+      debug_row7 = row7.q;
+      debug_row8 = row8.q;
+      debug_row9 = row9.q;
+    
+      debug_rom_index = grid_rom_index.q;
+      debug_gmcount = grid_mov_ctr.q;
+      debug_pattern = pattern_num.q;
+      debug_row_counter = row_ctr.q;
+    
+      debug_temptime = temp_time.q;
+      debug_tempcount = temp_coincount.q;
+      debug_temphighscore = temp_highscore.q;
+      
+    }
+}

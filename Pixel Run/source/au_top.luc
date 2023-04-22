@@ -1,0 +1,122 @@
+module au_top (
+    input clk,              // 100MHz clock
+    input rst_n,            // reset button (active low)
+
+    input usb_rx,           // USB->Serial input
+    output usb_tx,          // USB->Serial output
+    
+    input button[4],        //buttons
+    
+    output timer[8],        //timer seven_seg
+    output timer_sel[3],    //timer seven_seg selector
+    output coin[8],         //coin seven_seg
+    output coin_sel[2],     //coin seven_seg selector
+    output grid[1]          //grid to matrix
+  ) {
+  
+  sig rst;                  // reset signal
+  sig gameover_display;
+  
+  .clk(clk) {
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    //grid_to_led led_bit_converter;
+    .rst(rst){
+      multi_seven_seg timer_seg(#DIGITS(4));
+      multi_seven_seg coin_seg(#DIGITS(2));
+      game_beta gameMachine;
+      led_driver display;
+    }
+    
+    reset_conditioner reset_cond;
+
+    edge_detector edge_left_btn (#RISE(1), #FALL(0));
+    edge_detector edge_right_btn (#RISE(1), #FALL(0));
+    edge_detector edge_start_btn (#RISE(1), #FALL(0));
+    edge_detector edge_reset_btn (#RISE(1), #FALL(0));
+
+    button_conditioner left_btn_cond;
+    button_conditioner right_btn_cond;
+    button_conditioner start_btn_cond;
+    button_conditioner reset_btn_cond;
+    
+    multi_dec_ctr timer_dec_ctr(#DIGITS(4));
+    multi_dec_ctr coin_dec_ctr(#DIGITS(2));
+  }
+  
+    bin_to_dec timer_bin_to_dec(#DIGITS(4));
+    bin_to_dec coin_bin_to_dec(#DIGITS(2));
+  
+  always {
+    reset_cond.in = ~rst_n; 
+    rst = reset_cond.out;   
+    
+    usb_tx = usb_rx;    
+    
+    grid = b0;
+    timer = 8h00;
+    timer_sel = 4h0;
+    coin = 8h00;
+    coin_sel =4h0;
+     
+    // inputs
+    left_btn_cond.in = button[1]; 
+    right_btn_cond.in = button[0];
+    start_btn_cond.in = button[2];
+    reset_btn_cond.in = button[3];
+    edge_left_btn.in = left_btn_cond.out; 
+    edge_right_btn.in = right_btn_cond.out;
+    edge_start_btn.in = start_btn_cond.out;
+    edge_reset_btn.in = reset_btn_cond.out;
+    
+    gameMachine.left_button = edge_left_btn.out;
+    gameMachine.right_button = edge_right_btn.out;
+    gameMachine.start_button = edge_start_btn.out;
+    gameMachine.reset_button = edge_reset_btn.out;
+    
+    
+    // output grid
+    display.grid = gameMachine.led_matrix;
+    grid = display.out;
+    
+    gameover_display = gameMachine.gameover;
+    
+    timer_bin_to_dec.value = 0;
+    coin_bin_to_dec.value = 0;
+    timer_dec_ctr.rst = 0;
+    timer_dec_ctr.inc = 0;
+    coin_dec_ctr.rst = 0;
+    coin_dec_ctr.inc = 0;
+    
+    if (gameover_display) {
+      // output 7 segments
+      timer_bin_to_dec.value = gameMachine.highscore_time;
+      timer_seg.values = timer_bin_to_dec.digits;
+      timer = timer_seg.seg;
+      timer_sel = ~timer_seg.sel;
+    
+      coin_bin_to_dec.value = gameMachine.highscore_coin;
+      coin_seg.values = coin_bin_to_dec.digits;
+      coin = coin_seg.seg;
+      coin_sel = coin_seg.sel;
+      }
+    
+    else{
+      // output 7 segments
+      timer_dec_ctr.inc = gameMachine.timer_increase;
+      timer_dec_ctr.rst = gameMachine.timer_rst;
+      timer_seg.values = timer_dec_ctr.digits;
+      timer = timer_seg.seg;
+      timer_sel = ~timer_seg.sel;
+    
+      coin_dec_ctr.inc = gameMachine.coin_increase;
+      coin_dec_ctr.rst = gameMachine.coin_rst;
+      coin_seg.values = coin_dec_ctr.digits;
+      coin = coin_seg.seg;
+      coin_sel = coin_seg.sel;
+
+    }
+    
+    
+  }
+}

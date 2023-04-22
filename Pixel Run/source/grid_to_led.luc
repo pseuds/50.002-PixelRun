@@ -1,0 +1,289 @@
+module grid_to_led (
+    input clk,
+    
+    input grid[10][16],
+    output grid_ledversion[80][24]
+  ) {
+  //the idea of this module is to cahnge the 10*16 bits from the grid to the LED 80*24 bits
+  //direct mapping so its faster...i think it help? but at least this way the LEd has the input directly
+  //hopefully this makes the colours more stable
+  
+  code_to_led convert1;
+  code_to_led convert2;
+  code_to_led convert3;
+  code_to_led convert4;
+  code_to_led convert5;
+  code_to_led convert6;
+  code_to_led convert7;
+  code_to_led convert8;
+  code_to_led convert9;
+  code_to_led convert10;
+  code_to_led convert11;
+  code_to_led convert12;
+  code_to_led convert13;
+  code_to_led convert14;
+  code_to_led convert15;
+  code_to_led convert16;
+  code_to_led convert17;
+  code_to_led convert18;
+  code_to_led convert19;
+  code_to_led convert20;
+  code_to_led convert21;
+  code_to_led convert22;
+  code_to_led convert23;
+  code_to_led convert24;
+  code_to_led convert25;
+  code_to_led convert26;
+  code_to_led convert27;
+  code_to_led convert28;
+  code_to_led convert29;
+  code_to_led convert30;
+  code_to_led convert31;
+  code_to_led convert32;
+  code_to_led convert33;
+  code_to_led convert34;
+  code_to_led convert35;
+  code_to_led convert36;
+  code_to_led convert37;
+  code_to_led convert38;
+  code_to_led convert39;
+  code_to_led convert40;
+  code_to_led convert41;
+  code_to_led convert42;
+  code_to_led convert43;
+  code_to_led convert44;
+  code_to_led convert45;
+  code_to_led convert46;
+  code_to_led convert47;
+  code_to_led convert48;
+  code_to_led convert49;
+  code_to_led convert50;
+  code_to_led convert51;
+  code_to_led convert52;
+  code_to_led convert53;
+  code_to_led convert54;
+  code_to_led convert55;
+  code_to_led convert56;
+  code_to_led convert57;
+  code_to_led convert58;
+  code_to_led convert59;
+  code_to_led convert60;
+  code_to_led convert61;
+  code_to_led convert62;
+  code_to_led convert63;
+  code_to_led convert64;
+  code_to_led convert65;
+  code_to_led convert66;
+  code_to_led convert67;
+  code_to_led convert68;
+  code_to_led convert69;
+  code_to_led convert70;
+  code_to_led convert71;
+  code_to_led convert72;
+  code_to_led convert73;
+  code_to_led convert74;
+  code_to_led convert75;
+  code_to_led convert76;
+  code_to_led convert77;
+  code_to_led convert78;
+  code_to_led convert79; 
+  code_to_led convert80;
+  
+
+  
+ 
+
+  always {
+    //line 1  
+    convert1.grid = grid[0][1:0];
+      grid_ledversion[0] = convert1.grid_ledversion;
+    convert2.grid = grid[0][3:2];
+      grid_ledversion[1] = convert2.grid_ledversion;
+    convert3.grid = grid[0][5:4];
+      grid_ledversion[2] = convert3.grid_ledversion;
+    convert4.grid = grid[0][7:6];
+      grid_ledversion[3] = convert4.grid_ledversion;
+    convert5.grid = grid[0][9:8];
+      grid_ledversion[4] = convert5.grid_ledversion;
+    convert6.grid = grid[0][11:10];
+      grid_ledversion[5] = convert6.grid_ledversion;
+    convert7.grid = grid[0][13:12];
+      grid_ledversion[6] = convert7.grid_ledversion;
+    convert8.grid = grid[0][15:14];
+      grid_ledversion[7] = convert8.grid_ledversion;
+        
+    //line 2
+    convert9.grid = grid[1][1:0];
+      grid_ledversion[8] = convert9.grid_ledversion;
+    convert10.grid = grid[1][3:2];
+      grid_ledversion[9] = convert10.grid_ledversion;
+    convert11.grid = grid[1][5:4];
+      grid_ledversion[10] = convert11.grid_ledversion;
+    convert12.grid = grid[1][7:6];
+      grid_ledversion[11] = convert12.grid_ledversion;
+    convert13.grid = grid[1][9:8];
+      grid_ledversion[12] = convert13.grid_ledversion;
+    convert14.grid = grid[1][11:10];
+      grid_ledversion[13] = convert14.grid_ledversion;
+    convert15.grid = grid[1][13:12];
+      grid_ledversion[14] = convert15.grid_ledversion;
+    convert16.grid = grid[1][15:14];
+      grid_ledversion[15] = convert16.grid_ledversion;
+        
+
+    //line 3
+    convert17.grid = grid[2][1:0];
+      grid_ledversion[16] = convert17.grid_ledversion;
+    convert18.grid = grid[2][3:2];
+      grid_ledversion[17] = convert18.grid_ledversion;
+    convert19.grid = grid[2][5:4];
+      grid_ledversion[18] = convert19.grid_ledversion;
+    convert20.grid = grid[2][7:6];
+      grid_ledversion[19] = convert20.grid_ledversion;
+    convert21.grid = grid[2][9:8];
+      grid_ledversion[20] = convert21.grid_ledversion;
+    convert22.grid = grid[2][11:10];
+      grid_ledversion[21] = convert22.grid_ledversion;
+    convert23.grid = grid[2][13:12];
+      grid_ledversion[22] = convert23.grid_ledversion;
+    convert24.grid = grid[2][15:14];
+      grid_ledversion[23] = convert24.grid_ledversion;
+        
+
+    //line 4
+    convert25.grid = grid[3][1:0];
+      grid_ledversion[24] = convert25.grid_ledversion;
+    convert26.grid = grid[3][3:2];
+      grid_ledversion[25] = convert26.grid_ledversion;
+    convert27.grid = grid[3][5:4];
+      grid_ledversion[26] = convert27.grid_ledversion;
+    convert28.grid = grid[3][7:6];
+      grid_ledversion[27] = convert28.grid_ledversion;
+    convert29.grid = grid[3][9:8];
+      grid_ledversion[28] = convert29.grid_ledversion;
+    convert30.grid = grid[3][11:10];
+      grid_ledversion[29] = convert30.grid_ledversion;
+    convert31.grid = grid[3][13:12];
+      grid_ledversion[30] = convert31.grid_ledversion;
+    convert32.grid = grid[3][15:14];
+      grid_ledversion[31] = convert32.grid_ledversion;
+        
+
+    //line 5
+    convert33.grid = grid[4][1:0];
+      grid_ledversion[32] = convert33.grid_ledversion;
+    convert34.grid = grid[4][3:2];
+      grid_ledversion[33] = convert34.grid_ledversion;
+    convert35.grid = grid[4][5:4];
+      grid_ledversion[34] = convert35.grid_ledversion;
+    convert36.grid = grid[4][7:6];
+      grid_ledversion[35] = convert36.grid_ledversion;
+    convert37.grid = grid[4][9:8];
+      grid_ledversion[36] = convert37.grid_ledversion;
+    convert38.grid = grid[4][11:10];
+      grid_ledversion[37] = convert38.grid_ledversion;
+    convert39.grid = grid[4][13:12];
+      grid_ledversion[38] = convert39.grid_ledversion;
+    convert40.grid = grid[4][15:14];
+      grid_ledversion[39] = convert40.grid_ledversion;
+        
+
+    //line 6
+    convert41.grid = grid[5][1:0];
+      grid_ledversion[40] = convert41.grid_ledversion;
+    convert42.grid = grid[5][3:2];
+      grid_ledversion[41] = convert42.grid_ledversion;
+    convert43.grid = grid[5][5:4];
+      grid_ledversion[42] = convert43.grid_ledversion;
+    convert44.grid = grid[5][7:6];
+      grid_ledversion[43] = convert44.grid_ledversion;
+    convert45.grid = grid[5][9:8];
+      grid_ledversion[44] = convert45.grid_ledversion;
+    convert46.grid = grid[5][11:10];
+      grid_ledversion[45] = convert46.grid_ledversion;
+    convert47.grid = grid[5][13:12];
+      grid_ledversion[46] = convert47.grid_ledversion;
+    convert48.grid = grid[5][15:14];
+      grid_ledversion[47] = convert48.grid_ledversion;
+        
+
+    //line 7
+    convert49.grid = grid[6][1:0];
+      grid_ledversion[48] = convert49.grid_ledversion;
+    convert50.grid = grid[6][3:2];
+      grid_ledversion[49] = convert50.grid_ledversion;
+    convert51.grid = grid[6][5:4];
+      grid_ledversion[50] = convert51.grid_ledversion;
+    convert52.grid = grid[6][7:6];
+      grid_ledversion[51] = convert52.grid_ledversion;
+    convert53.grid = grid[6][9:8];
+      grid_ledversion[52] = convert53.grid_ledversion;
+    convert54.grid = grid[6][11:10];
+      grid_ledversion[53] = convert54.grid_ledversion;
+    convert55.grid = grid[6][13:12];
+      grid_ledversion[54] = convert55.grid_ledversion;
+    convert56.grid = grid[6][15:14];
+      grid_ledversion[55] = convert56.grid_ledversion;
+        
+
+    //line 8
+    convert57.grid = grid[7][1:0];
+      grid_ledversion[56] = convert57.grid_ledversion;
+    convert58.grid = grid[7][3:2];
+      grid_ledversion[57] = convert58.grid_ledversion;
+    convert59.grid = grid[7][5:4];
+      grid_ledversion[58] = convert59.grid_ledversion;
+    convert60.grid = grid[7][7:6];
+      grid_ledversion[59] = convert60.grid_ledversion;
+    convert61.grid = grid[7][9:8];
+      grid_ledversion[60] = convert61.grid_ledversion;
+    convert62.grid = grid[7][11:10];
+      grid_ledversion[61] = convert62.grid_ledversion;
+    convert63.grid = grid[7][13:12];
+      grid_ledversion[62] = convert63.grid_ledversion;
+    convert64.grid = grid[7][15:14];
+      grid_ledversion[63] = convert64.grid_ledversion;
+        
+
+    //line 9
+    convert65.grid = grid[8][1:0];
+      grid_ledversion[64] = convert65.grid_ledversion;
+    convert66.grid = grid[8][3:2];
+      grid_ledversion[65] = convert66.grid_ledversion;
+    convert67.grid = grid[8][5:4];
+      grid_ledversion[66] = convert67.grid_ledversion;
+    convert68.grid = grid[8][7:6];
+      grid_ledversion[67] = convert68.grid_ledversion;
+    convert69.grid = grid[8][9:8];
+      grid_ledversion[68] = convert69.grid_ledversion;
+    convert70.grid = grid[8][11:10];
+      grid_ledversion[69] = convert70.grid_ledversion;
+    convert71.grid = grid[8][13:12];
+      grid_ledversion[70] = convert71.grid_ledversion;
+    convert72.grid = grid[8][15:14];
+      grid_ledversion[71] = convert72.grid_ledversion;
+        
+
+    //line 10
+    convert73.grid = grid[9][1:0];
+      grid_ledversion[72] = convert73.grid_ledversion;
+    convert74.grid = grid[9][3:2];
+      grid_ledversion[73] = convert74.grid_ledversion;
+    convert75.grid = grid[9][5:4];
+      grid_ledversion[74] = convert75.grid_ledversion;
+    convert76.grid = grid[9][7:6];
+      grid_ledversion[75] = convert76.grid_ledversion;
+    convert77.grid = grid[9][9:8];
+      grid_ledversion[76] = convert77.grid_ledversion;
+    convert78.grid = grid[9][11:10];
+      grid_ledversion[77] = convert78.grid_ledversion;
+   convert79.grid = grid[9][13:12];
+      grid_ledversion[78] = convert79.grid_ledversion;
+    convert80.grid = grid[9][15:14];
+      grid_ledversion[79] = convert80.grid_ledversion; 
+        
+
+    
+    
+        }
+    }

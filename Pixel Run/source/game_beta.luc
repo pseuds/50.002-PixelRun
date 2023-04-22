@@ -1,0 +1,139 @@
+module game_beta (
+    input start_button,
+    input reset_button,
+    input left_button,
+    input right_button,
+    
+    input clk,  // clock
+    input rst,  // reset
+   
+    output led_matrix[10][16],
+    
+    output timer_increase,
+    output timer_rst,
+    output coin_increase,
+    output coin_rst,
+    
+    output gameover,
+    output highscore_time[16],
+    output highscore_coin[16],
+    
+    output debug_outa[16],
+    output debug_outb[16],
+    
+    output debug_temp_time[16],
+    output debug_temp_cc[16],
+    output debug_temp_hs[16]
+  ) {
+  
+  //temp variables
+  sig inputAlu_a[16];
+  sig inputAlu_b[16];
+  
+  alu game_alu;
+  generate_grid_rom gen_grid;
+  grid5_to_matrix grid_converter;
+
+  .clk(clk){
+    edge_detector game_timer_detector(#RISE(1), #FALL(0));
+    edge_detector gm_count_detector(#RISE(1), #FALL(0));
+    //edge_detector random_pattern_dtr(#RISE(1), #FALL(0));
+    
+    .rst(rst){
+      game_CU game_controlunit;
+      game_regfiles storage;
+      
+      counter slow_timer(#SIZE(1),#DIV(26)); // +1 per second
+      counter gm_count_timer(#SIZE(1),#DIV(20)); // +1 per 1/64 second
+      
+      random_gen_pattern random_pattern;
+    }
+  }
+  always {
+    
+    //edge detectors
+    game_timer_detector.in = slow_timer.value; // 30 second timer detector
+    gm_count_detector.in = gm_count_timer.value; // gm count timer detector
+
+    // pass timer and counter signals to CU unit 
+    game_controlunit.increase_timer = game_timer_detector.out;
+    game_controlunit.increase_gmcount = gm_count_detector.out;
+    
+    //pass button press signal to CU unit
+    game_controlunit.left_button = left_button;
+    game_controlunit.right_button = right_button;
+    game_controlunit.start_button = start_button;
+    game_controlunit.reset_button = reset_button;
+    
+    //Setup REGFILE unit 
+    storage.we = game_controlunit.we_regfile;
+    storage.write_address = game_controlunit.regfile_write_address;
+   
+    storage.read_address_a = game_controlunit.regfile_read_address_a;
+    storage.read_address_b = game_controlunit.regfile_read_address_b;
+    
+    //bootstrap reg_b output to CU for convenient branching conditions
+    game_controlunit.regfile_datain = storage.out_b;
+    debug_outa = storage.out_a;
+    debug_outb = storage.out_b;
+    
+    // get rom address from memory - particularly for state SHIFTDOWN_ROW9
+    case(game_controlunit.get_rom_address) {
+      b1 : gen_grid.address = storage.out_a;
+      default : gen_grid.address = game_controlunit.rom_address;
+    }
+    
+    // TODO: asel mux
+    case(game_controlunit.asel){
+      b0  : inputAlu_a = storage.out_a;
+      b1  : inputAlu_a = gen_grid.out; // read from ROM
+      default :
+          inputAlu_a = b0000000000000000;
+    }
+    
+    // TODO: bsel mux
+    case(game_controlunit.bsel){
+      b000 : inputAlu_b = storage.out_b;
+      b001 : inputAlu_b = 10;   // GMT Threshold Init
+      b010 : inputAlu_b = 7;   // GMT Threshold Easy
+      b011 : inputAlu_b = 5;   // GMT Threshold Medium
+      b100 : inputAlu_b = 3;   // GMT Threshold Hard
+      b101 : inputAlu_b = b0001000000000000; // player in col 0
+      b110 : inputAlu_b = 2; // value 2
+      b111 : inputAlu_b = b0000000000010000; // player in col 4
+      b1001 : inputAlu_b = 1; // value 1
+      default: //necessary to init
+          inputAlu_b = 0;
+    }
+    
+    //ALU
+    game_alu.a = inputAlu_a;
+    game_alu.b = inputAlu_b;
+    game_alu.alufn_signal = game_controlunit.alufn;
+   
+    // REGFILE INPUTS
+    // wdsel mux
+    case (game_controlunit.alu_out_sel){
+      b1 : storage.data = random_pattern.out;
+      default : //b0
+          storage.data = game_alu.out;
+    }
+    
+    timer_increase = game_controlunit.increased_time;
+    timer_rst = game_controlunit.reset_timer;
+    coin_increase = game_controlunit.increased_coin;
+    coin_rst = game_controlunit.reset_coin;
+    
+    gameover = game_controlunit.gameover_bool;
+    highscore_time = storage.highest_time;
+    highscore_coin = storage.highest_coin;
+  
+    grid_converter.grid = storage.grid_data;
+    led_matrix = grid_converter.grid_out;
+    
+    debug_temp_time = storage.debug_temptime;
+    debug_temp_cc = storage.debug_tempcount;
+    debug_temp_hs = storage.debug_temphighscore;
+    
+  }
+}

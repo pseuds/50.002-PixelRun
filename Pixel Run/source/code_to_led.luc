@@ -1,0 +1,20 @@
+module code_to_led (
+    input grid[2],
+    output grid_ledversion[24]
+  ) {
+
+  always {
+  if (grid == b10){ //coin
+    grid_ledversion = h000101; //yellow
+      }
+  else if (grid == b01){ //player
+    grid_ledversion = h000001; //red
+      }
+    else if (grid == b11){ //obstacle
+    grid_ledversion = h000100; //(alittle bit) dirty green
+      }
+    else{
+    grid_ledversion = h000000;
+    }
+  }
+}

@@ -1,0 +1,41 @@
+// to generate pattern number 0 to 7
+module random_gen_pattern #(
+  SEED = 128h843233523a613966423b622562592c62: SEED.WIDTH == 128 && SEED[95:0] != 0
+)
+  (
+    input clk,  // clock
+    input rst,  // reset
+    output out[3]
+  ) {
+
+  .clk(clk){
+     edge_detector edge_rng;
+     edge_detector edge_seed;
+     dff seed[16]; //don't reset the seed because we don't want the same random number each time we press reset
+     dff hold_num[3]; 
+    
+    .rst(rst) {
+      //counter slowerclock(#SIZE(1), #DIV(26));
+      counter slowclock_rng(#SIZE(1), #DIV(21));
+      pn_gen random_num;
+    }
+  }
+  
+  always {
+    out = b001;
+    random_num.seed = seed.q;
+    
+    edge_rng.in = slowclock_rng.value;
+    random_num.next = edge_rng.out;
+    
+    edge_seed.in = slowclock_rng.value;
+    
+    if (edge_seed.out) {
+      seed.d = seed.q + 1;
+    }
+    
+    // outputs randomly generated 3-bit value
+    hold_num.d = random_num.num[2:0];
+    out = hold_num.q;
+  }
+}
